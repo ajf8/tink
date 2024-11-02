@@ -9,15 +9,12 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/tinkerbell/tink/internal/server"
 )
 
-// Registrar is an interface for registering APIs on a gRPC server.
-type Registrar interface {
-	Register(*grpc.Server)
-}
-
 // SetupGRPC opens a listener and serves a given Registrar's APIs on a gRPC server and returns the listener's address or an error.
-func SetupGRPC(ctx context.Context, r Registrar, listenAddr string, errCh chan<- error) (string, error) {
+func SetupGRPC(ctx context.Context, r server.Registrar, listenAddr string, errCh chan<- error) (string, error) {
 	params := []grpc.ServerOption{
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.UnaryInterceptor(grpcprometheus.UnaryServerInterceptor),

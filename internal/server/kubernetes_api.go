@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
+	"github.com/gorilla/mux"
 	"github.com/tinkerbell/tink/api/v1alpha1"
 	"github.com/tinkerbell/tink/internal/deprecated/controller"
 	"github.com/tinkerbell/tink/internal/proto"
@@ -97,4 +98,8 @@ type KubernetesBackedServer struct {
 // Register registers the service on the gRPC server.
 func (s *KubernetesBackedServer) Register(server *grpc.Server) {
 	proto.RegisterWorkflowServiceServer(server, s)
+}
+
+// Register registers the service on the gRPC server.
+func (s *KubernetesBackedServer) RegisterHttp(_ *mux.Router) {
 }

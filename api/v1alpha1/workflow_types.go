@@ -52,6 +52,7 @@ const (
 
 // Workflow is the Schema for the Workflows API.
 type Workflow struct {
+	ID                int64 `json:"-"`
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -193,6 +194,7 @@ type Task struct {
 
 // Action represents a workflow action.
 type Action struct {
+	ID          int64             `json:"-"`
 	Name        string            `json:"name,omitempty"`
 	Image       string            `json:"image,omitempty"`
 	Timeout     int64             `json:"timeout,omitempty"`

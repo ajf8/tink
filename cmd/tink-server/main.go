@@ -26,26 +26,32 @@ var version = "devel"
 // Config represents all the values you can configure as part of the tink-server.
 // You can change the configuration via environment variable, or file, or command flags.
 type Config struct {
-	GRPCAuthority string
-	HTTPAuthority string
-	Backend       string
-
+	GRPCAuthority  string
+	HTTPAuthority  string
+	Backend        string
 	KubeconfigPath string
+	DBDriver       string
+	DBConnection   string
 	KubeAPI        string
 	KubeNamespace  string
 }
 
-const backendKubernetes = "kubernetes"
+const (
+	backendKubernetes = "kubernetes"
+	backendDB         = "db"
+)
 
 func backends() []string {
-	return []string{backendKubernetes}
+	return []string{backendKubernetes, backendDB}
 }
 
 func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.GRPCAuthority, "grpc-authority", ":42113", "The address used to expose the gRPC server")
 	fs.StringVar(&c.HTTPAuthority, "http-authority", ":42114", "The address used to expose the HTTP server")
-	fs.StringVar(&c.Backend, "backend", backendKubernetes, fmt.Sprintf("The backend datastore to use. Must be one of %s", strings.Join(backends(), ", ")))
+	fs.StringVar(&c.Backend, "backend", backendDB, fmt.Sprintf("The backend datastore to use. Must be one of %s", strings.Join(backends(), ", ")))
 	fs.StringVar(&c.KubeconfigPath, "kubeconfig", "", "The path to the Kubeconfig. Only takes effect if `--backend=kubernetes`")
+	fs.StringVar(&c.DBDriver, "db-driver", "sqlite3", "The database driver to use. Only takes effect if `--backend=db`")
+	fs.StringVar(&c.DBConnection, "db-connection", "tink.sqlite", "The database connection string to use. Only takes effect if `--backend=db`")
 	fs.StringVar(&c.KubeAPI, "kubernetes", "", "The Kubernetes API URL, used for in-cluster client construction. Only takes effect if `--backend=kubernetes`")
 	fs.StringVar(&c.KubeNamespace, "kube-namespace", "", "The Kubernetes namespace to target")
 }
@@ -106,7 +112,7 @@ func NewRootCommand() *cobra.Command {
 			// graceful shutdown and error management but I want to
 			// figure this out in another PR
 			errCh := make(chan error, 2)
-			var registrar grpcserver.Registrar
+			var registrar server.Registrar
 
 			switch config.Backend {
 			case backendKubernetes:
@@ -116,6 +122,16 @@ func NewRootCommand() *cobra.Command {
 					config.KubeconfigPath,
 					config.KubeAPI,
 					config.KubeNamespace,
+				)
+				if err != nil {
+					return err
+				}
+			case backendDB:
+				var err error
+				registrar, err = server.NewDBBackedServer(
+					logger,
+					config.DBDriver,
+					config.DBConnection,
 				)
 				if err != nil {
 					return err
@@ -136,7 +152,7 @@ func NewRootCommand() *cobra.Command {
 			}
 			logger.Info("started listener", "address", addr)
 
-			httpserver.SetupHTTP(ctx, logger, config.HTTPAuthority, errCh)
+			httpserver.SetupHTTP(ctx, registrar, logger, config.HTTPAuthority, errCh)
 
 			select {
 			case err := <-errCh:

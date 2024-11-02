@@ -44,7 +44,7 @@ MOQ     := $(TOOLS_DIR)/moq-$(MOQ_VER)
 SHELLCHECK_VER := v0.8.0
 SHELLCHECK     := $(TOOLS_DIR)/shellcheck-$(SHELLCHECK_VER)
 
-HADOLINT_VER := v2.12.1-beta
+HADOLINT_VER := v2.12.0
 HADOLINT     := $(TOOLS_DIR)/hadolint-$(HADOLINT_VER)
 
 YAMLLINT_VER  := 1.26.3
@@ -127,7 +127,11 @@ $(SHELLCHECK):
 $(HADOLINT):
 	@mkdir -p $(TOOLS_DIR)
 	@echo "Installing hadolint at $@"
-	@curl -sSfL -o $@ https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-$(LINT_OS)-$(LINT_ARCH)
+	ifeq ($(LINT_ARCH), "aarch64")
+		@curl -v -sSfL -o $@ https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-$(LINT_OS)-arm64
+	else
+		@curl -v -sSfL -o $@ https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-$(LINT_OS)-$(LINT_ARCH)
+	endif
 	@chmod u+x $@
 
 $(YAMLLINT_BIN):

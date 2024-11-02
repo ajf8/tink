@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/tinkerbell/tink/internal/server"
 )
 
 var (
@@ -19,10 +22,13 @@ var (
 )
 
 // SetupHTTP setup and return an HTTP server.
-func SetupHTTP(ctx context.Context, logger logr.Logger, authority string, errCh chan<- error) {
-	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/version", getGitRevJSONHandler())
-	http.HandleFunc("/healthz", healthCheckHandler)
+func SetupHTTP(ctx context.Context, r server.Registrar, logger logr.Logger, authority string, errCh chan<- error) {
+	router := mux.NewRouter()
+	router.Handle("/metrics", promhttp.Handler())
+	router.HandleFunc("/version", getGitRevJSONHandler())
+	router.HandleFunc("/healthz", healthCheckHandler)
+	r.RegisterHttp(router)
+	http.Handle("/", router)
 
 	srv := &http.Server{ //nolint:gosec // TODO: fix Potential Slowloris Attack because ReadHeaderTimeout is not configured
 		Addr: authority,
